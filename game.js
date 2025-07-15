@@ -64,28 +64,28 @@ async function fetchGitHubGrid(username) {
     const text = await res.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, "image/svg+xml");
-    const rects = doc.querySelectorAll("rect[data-level]");
 
-    let tempGrid = Array.from({ length: rows }, () => []);
-    for (let rect of rects) {
-      const level = parseInt(rect.getAttribute("data-level"));
-      const x = parseInt(rect.getAttribute("x"));
-      const y = parseInt(rect.getAttribute("y"));
-      const col = Math.floor(x / 13); // GitHub cell spacing ~13px
-      const row = Math.floor(y / 13);
+    const weeks = doc.querySelectorAll("g > g"); // Each <g> is a column (week)
+    let tempGrid = Array.from({ length: rows }, () => Array(cols).fill(0));
 
-      if (row < rows && col < cols) {
-        tempGrid[row][col] = level;
-      }
-    }
+    weeks.forEach((week, colIndex) => {
+      const days = week.querySelectorAll("rect[data-level]");
+      days.forEach((rect, rowIndex) => {
+        const level = parseInt(rect.getAttribute("data-level"));
+        if (colIndex < cols && rowIndex < rows) {
+          tempGrid[rowIndex][colIndex] = level;
+        }
+      });
+    });
 
+    // Copy into main grid
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         grid[y][x] = tempGrid[y]?.[x] ?? 0;
       }
     }
 
-    loop(); // start animation only after data is ready
+    loop(); // start the game
   } catch (err) {
     console.error("Failed to load GitHub grid:", err);
   }
